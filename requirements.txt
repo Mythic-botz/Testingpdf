@@ -3,3 +3,4 @@ motor
 pymupdf
 pillow
 aiofiles
+pytz
