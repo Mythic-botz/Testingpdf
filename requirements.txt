@@ -4,3 +4,4 @@ pymupdf
 pillow
 aiofiles
 pytz
+TgCrypto-pyrofork  # Use Pyrofork’s version of TgCrypto
