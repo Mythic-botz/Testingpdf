@@ -25,6 +25,6 @@ ADMIN = "6617544956"
 # ------------------------------
 # Webhook / deployment config
 # ------------------------------
-WEBHOOK = True
+WEBHOOK = False
 BASE_URL = os.environ.get("BASE_URL", "https://testingpdf.onrender.com")   # e.g., "https://your-bot.onrender.com"
 WEBHOOK_PATH = "webhook"
