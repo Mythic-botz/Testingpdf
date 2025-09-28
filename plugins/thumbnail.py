@@ -1,6 +1,6 @@
 import fitz  # PyMuPDF
 from PIL import Image
-from pyrofork import Client, filters
+from pyrogram import Client, filters
 from helper.database import Database
 
 db = Database()
