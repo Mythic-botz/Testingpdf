@@ -4,7 +4,6 @@ from pytz import timezone
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
 from config import *
-import pyromod
 import pyrogram.utils
 
 # Fix for chat/channel ID edge cases
@@ -74,14 +73,4 @@ class Bot(Client):
             print(f"✅ Webhook set to {webhook_url}")
 
     async def stop(self, *args):
-        if self.user_client:
-            try:
-                await self.user_client.stop()
-                print("✅ User STRING_SESSION stopped.")
-            except Exception as e:
-                print(f"[WARN] Could not stop user session cleanly: {e}")
-
-        await super().stop()
-
-if __name__ == "__main__":
-    Bot().run()
+        if
