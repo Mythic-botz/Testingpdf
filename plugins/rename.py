@@ -1,6 +1,6 @@
 import os
 import shutil
-from pyrofork import Client, filters
+from pyrogram import Client, filters
 from config import WORKDIR, DUMP_CHANNEL_ID
 from helper.database import Database
 from helper.utils import download_message, safe_filename, ensure_dir
