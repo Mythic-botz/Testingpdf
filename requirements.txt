@@ -1,0 +1,5 @@
+pyrofork
+motor
+pymupdf
+pillow
+aiofiles
