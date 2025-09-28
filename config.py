@@ -14,5 +14,7 @@ DB_NAME = "Haruto179"
 
 # Dump channel (optional)
 DUMP_CHANNEL_ID = int(os.getenv("DUMP_CHANNEL_ID", "0"))
+LOG_CHANNEL = int(os.getenv("DUMP_CHANNEL_ID", "0"))
+
 
 ADMIN = "6617544956"
