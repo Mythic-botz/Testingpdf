@@ -10,11 +10,6 @@ import pyrogram.utils
 pyrogram.utils.MIN_CHAT_ID = -999999999999
 pyrogram.utils.MIN_CHANNEL_ID = -100999999999999
 
-try:
-    from plugins.cb_data import app as Client2
-except Exception:
-    Client2 = None
-
 class Bot(Client):
     def __init__(self):
         super().__init__(
@@ -27,7 +22,6 @@ class Bot(Client):
             plugins={"root": "plugins"},
             sleep_threshold=15,
         )
-        self.user_client = Client2 if (STRING_SESSION and Client2) else None
 
     async def start(self):
         await super().start()
@@ -37,21 +31,16 @@ class Bot(Client):
         self.username = me.username
         self.uptime = BOT_UPTIME if "BOT_UPTIME" in globals() else None
 
-        if self.user_client:
-            try:
-                await self.user_client.start()
-                print("✅ User STRING_SESSION started.")
-            except Exception as e:
-                print(f"[WARN] Could not start user session: {e}")
-
         print(f"{me.first_name} is started.....✨️")
 
+        # Notify admins
         for admin_id in ADMIN:
             try:
                 await self.send_message(admin_id, f"**{me.first_name} is Started...**")
             except Exception:
                 pass
 
+        # Notify log channel
         if LOG_CHANNEL:
             try:
                 curr = datetime.now(timezone("Asia/Kolkata"))
@@ -68,19 +57,15 @@ class Bot(Client):
             except Exception:
                 print("Please make the bot an admin in your log channel.")
 
+        # Webhook info (optional)
         if WEBHOOK:
             webhook_url = f"{BASE_URL}/{WEBHOOK_PATH}"
             print(f"✅ Webhook set to {webhook_url}")
 
     async def stop(self, *args):
-        if self.user_client:
-            try:
-                await self.user_client.stop()
-                print("✅ User STRING_SESSION stopped.")
-            except Exception as e:
-                print(f"[WARN] Could not stop user session cleanly: {e}")
-
+        # Normal bot shutdown
         await super().stop()
+        print("✅ Bot stopped successfully.")
 
 if __name__ == "__main__":
     Bot().run()
