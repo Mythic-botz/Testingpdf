@@ -4,6 +4,7 @@ from pytz import timezone
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
 from config import *
+import pyromod
 import pyrogram.utils
 
 # Fix for chat/channel ID edge cases
@@ -18,15 +19,14 @@ except Exception:
 class Bot(Client):
     def __init__(self):
         super().__init__(
-            # Use MongoDB session for Render, otherwise fallback to file session
-            name="renamer",  # keep name for local dev
+            # Default session file "renamer.session"
+            name="renamer",
             api_id=API_ID,
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
             workers=200,
             plugins={"root": "plugins"},
             sleep_threshold=15,
-            mongodb=MONGO_URL if MONGO_URL else None,  # 👈 only change
         )
         self.user_client = Client2 if (STRING_SESSION and Client2) else None
 
