@@ -7,20 +7,22 @@ from aiohttp import web
 from config import *
 import pyrogram.utils
 
-# Fix for chat/channel ID edge cases
+# Fix chat/channel ID edge cases
 pyrogram.utils.MIN_CHAT_ID = -999999999999
 pyrogram.utils.MIN_CHANNEL_ID = -100999999999999
 
+# Initialize bot
 bot = Client(
-    "renamer",
+    name="renamer",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    workers=50,
+    workers=200,
     plugins={"root": "plugins"},
+    sleep_threshold=15,
 )
 
-# Webhook POST handler
+# Webhook listener
 async def handle_webhook(request):
     data = await request.json()
     await bot.process_updates([data])
@@ -32,8 +34,7 @@ async def on_startup(app):
     me = await bot.get_me()
     bot.mention = me.mention
     bot.username = me.username
-    bot.uptime = BOT_UPTIME if "BOT_UPTIME" in globals() else None
-    print(f"🚀 {me.first_name} is started...✨️")
+    print(f"🚀 {me.first_name} started in webhook mode!")
 
     # Notify admins
     for admin_id in ADMIN:
@@ -57,23 +58,24 @@ async def on_startup(app):
                 f"🉐 Version : `v{__version__} (Layer {layer})`"
             )
         except Exception:
-            print("⚠️ Make the bot an admin in your log channel.")
+            print("Please make the bot an admin in your log channel.")
 
 # Shutdown tasks
 async def on_cleanup(app):
     await bot.stop()
     print("✅ Bot stopped successfully.")
 
+# Create aiohttp app
+app = web.Application()
+app.router.add_post(f"/{WEBHOOK_PATH}", handle_webhook)
+app.on_startup.append(on_startup)
+app.on_cleanup.append(on_cleanup)
+
 if __name__ == "__main__":
     PORT = int(os.environ.get("PORT", 8080))
     BASE_URL = os.environ.get("BASE_URL")
     if not BASE_URL:
-        raise Exception("❌ BASE_URL environment variable is required!")
+        raise Exception("❌ BASE_URL environment variable required for webhook!")
 
-    app = web.Application()
-    app.router.add_post(f"/{WEBHOOK_PATH}", handle_webhook)
-    app.on_startup.append(on_startup)
-    app.on_cleanup.append(on_cleanup)
-
-    print(f"🌐 Webhook running at {BASE_URL}/{WEBHOOK_PATH}")
+    print(f"🚀 Webhook listening at {BASE_URL}/{WEBHOOK_PATH}")
     web.run_app(app, host="0.0.0.0", port=PORT)
