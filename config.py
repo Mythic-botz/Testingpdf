@@ -18,3 +18,10 @@ LOG_CHANNEL = int(os.getenv("DUMP_CHANNEL_ID", "0"))
 
 
 ADMIN = "6617544956"
+
+# ------------------------------
+# Webhook / deployment config
+# ------------------------------
+WEBHOOK = True
+BASE_URL = os.environ.get("BASE_URL", "https://testingpdf.onrender.com")   # e.g., "https://your-bot.onrender.com"
+WEBHOOK_PATH = "webhook"
