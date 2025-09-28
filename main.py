@@ -13,7 +13,6 @@ pyrogram.utils.MIN_CHANNEL_ID = -100999999999999
 class Bot(Client):
     def __init__(self):
         super().__init__(
-            # Default session file "renamer.session"
             name="renamer",
             api_id=API_ID,
             api_hash=API_HASH,
@@ -57,15 +56,27 @@ class Bot(Client):
             except Exception:
                 print("Please make the bot an admin in your log channel.")
 
-        # Webhook info (optional)
-        if WEBHOOK:
-            webhook_url = f"{BASE_URL}/{WEBHOOK_PATH}"
-            print(f"✅ Webhook set to {webhook_url}")
-
     async def stop(self, *args):
-        # Normal bot shutdown
         await super().stop()
         print("✅ Bot stopped successfully.")
 
+
 if __name__ == "__main__":
-    Bot().run()
+    PORT = int(os.environ.get("PORT", 8080))
+    BASE_URL = os.environ.get("BASE_URL", None)  # your Render domain with https
+
+    if not BASE_URL:
+        raise Exception("❌ BASE_URL environment variable is required for webhook!")
+
+    bot = Bot()
+
+    webhook_url = f"{BASE_URL}/{WEBHOOK_PATH}"  # WEBHOOK_PATH in config.py
+    print(f"🚀 Bot running in webhook mode at {webhook_url}")
+
+    # Start webhook listener
+    bot.run(
+        web=True,
+        host="0.0.0.0",
+        port=PORT,
+        webhook_url=webhook_url
+    )
