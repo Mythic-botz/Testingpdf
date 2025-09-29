@@ -1,93 +1,68 @@
-import os
-import shutil
-import re
+# rename.py - File rename logic
 from pyrogram import Client, filters
-from config import WORKDIR, DUMP_CHANNEL_ID
-from helper.database import Database
-from helper.utils import download_message, safe_filename, ensure_dir
-from plugins.thumbnail import make_pdf_thumbnail
-from pyrogram.enums import ParseMode
+from helper import is_allowed_file, sanitize_filename, log_message, format_filename
+from database import db
+from config import CONFIG
+import asyncio
+import os
 
-db = Database()
+async def rename_handler(client: Client, message):
+    """
+    Handle incoming documents (PDFs).
+    :param client: Pyrofork Client
+    :param message: Incoming message
+    """
+    if not message.document or not is_allowed_file(message.document.file_name):
+        return
 
-@Client.on_message(filters.command("start") & filters.private)
-async def start_handler(client, message):
-    txt = (
-        "👋 Hi! I’m an **Auto PDF Rename Bot**.\n\n"
-        "📌 Send me a PDF and I’ll rename it automatically.\n"
-        "💡 You can set your rename format using:\n"
-        "`/setformat MyBook_Chapter{num}.pdf`\n\n"
-        "📷 Send an image to set it as your custom thumbnail."
+    user_id = message.from_user.id
+    username = message.from_user.username
+    original_name = os.path.splitext(message.document.file_name)[0]
+    await log_message(client, f"Received PDF from user {user_id}: {message.document.file_name}")
+
+    # Get user format from DB
+    format_pattern = db.get_user_setting(user_id, 'format_pattern', CONFIG['default_format_pattern'])
+
+    # Prompt for custom name or use format
+    await message.reply(
+        f"Reply with new name for '{message.document.file_name}' "
+        f"(or 'auto' for '{format_pattern}', 'default' for '{CONFIG['default_rename_pattern']}'):"
     )
-    await message.reply(txt, parse_mode=ParseMode.MARKDOWN)
 
-@Client.on_message(filters.command("setformat") & filters.private)
-async def set_format(client, message):
-    user = message.from_user
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        return await message.reply("Usage: `/setformat NewName_{num}.pdf`", parse_mode=ParseMode.MARKDOWN)
-    fmt = args[1]
-    await db.set_format(user.id, fmt)
-    await message.reply(f"✅ Format saved: `{fmt}`", parse_mode=ParseMode.MARKDOWN)
-
-@Client.on_message(filters.private & filters.document)
-async def auto_rename_pdf(client, message):
-    user = message.from_user
-    await db.ensure_user(user.id, getattr(user, "username", None))
-
-    doc = message.document
-    if not doc.file_name.lower().endswith(".pdf"):
-        return await message.reply("⚠️ Only PDF files are supported!", parse_mode=ParseMode.MARKDOWN)
-
-    fmt = await db.get_format(user.id)
-    if not fmt:
-        return await message.reply("⚠️ Please set a format first using `/setformat`", parse_mode=ParseMode.MARKDOWN)
-
-    # Extract number
-    match = re.search(r"(\d+)", doc.file_name)
-    num = match.group(1) if match else "1"
-
-    new_name = safe_filename(fmt.format(num=num))
-    ensure_dir(WORKDIR)
-
-    orig_path = os.path.join(WORKDIR, f"{doc.file_id}_orig.pdf")
-    new_path = os.path.join(WORKDIR, new_name)
-
-    status = await message.reply("⬇️ Downloading PDF...", parse_mode=ParseMode.MARKDOWN)
     try:
-        await download_message(message, orig_path)
-
-        # Thumbnail
-        thumb_id = await db.get_thumbnail(user.id)
-        if not thumb_id:
-            thumb_file = await make_pdf_thumbnail(orig_path)
+        # Wait for reply
+        replied_msg = await asyncio.wait_for(
+            client.wait_for_message(message.chat.id, filters=filters.user(user_id) & filters.reply_to_message_id(message.id)),
+            timeout=60
+        )
+        
+        new_name = replied_msg.text.strip()
+        if new_name.lower() == "auto":
+            # Download file for chapter detection (if needed)
+            file_path = await message.download()
+            new_name = format_filename(format_pattern, original_name, user_id, username, file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)  # Clean up
+        elif new_name.lower() == "default":
+            new_name = CONFIG['default_rename_pattern'].format(original_name=original_name)
         else:
-            thumb_file = thumb_id
-
-        shutil.copyfile(orig_path, new_path)
-
-        await status.edit("⬆️ Uploading renamed PDF...", parse_mode=ParseMode.MARKDOWN)
+            new_name = new_name.format(original_name=original_name)
+        
+        new_name = sanitize_filename(new_name)
+        
+        # Send renamed document (simulated via caption)
         await client.send_document(
             chat_id=message.chat.id,
-            document=new_path,
-            thumb=thumb_file,
-            caption=f"📄 Renamed: `{new_name}`",
-            parse_mode=ParseMode.MARKDOWN
+            document=message.document.file_id,
+            caption=new_name,
+            reply_to_message_id=message.id
         )
-
-        if DUMP_CHANNEL_ID:
-            await client.send_document(
-                chat_id=DUMP_CHANNEL_ID,
-                document=new_path,
-                caption=f"Dump: {user.id}"
-            )
-
-        await db.log_file(message.chat.id, message.id, user.id, doc.file_name, new_name, doc.file_id)
-        await status.delete()
-
+        
+        db.set_user_setting(user_id, 'last_rename', new_name)
+        await message.reply(f"Renamed to: {new_name}")
+        
+    except asyncio.TimeoutError:
+        await message.reply("Timeout! Use /setformat to set auto-rename pattern.")
     except Exception as e:
-        await status.edit(f"❌ Error: {e}", parse_mode=ParseMode.MARKDOWN)
-    finally:
-        try: os.remove(orig_path)
-        except: pass
+        await log_message(client, f"Rename error for {user_id}: {e}")
+        await message.reply("Error renaming. Try again.")
