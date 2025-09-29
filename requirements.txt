@@ -1,8 +1,14 @@
-pyrofork
+#pyrofork
 motor
 pymupdf
-pillow
+#pillow
 aiofiles
 pytz
-TgCrypto-pyrofork  # Use Pyrofork’s version of TgCrypto
+TgCrypto-pyrofork  # Use Pyrofork’s version of Tgcrypto
 aiohttp
+# Core dependencies
+pyrofork==2.0.106  # Pyrofork for Telegram API
+flask==3.0.3  # Web framework for webhook
+Pillow==10.4.0  # For thumbnails
+PyPDF2==3.0.1  # For chapter detection in PDFs
+sqlite3  # Built-in for database
