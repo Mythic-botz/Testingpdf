@@ -5,9 +5,9 @@ from pyrogram import Client, filters
 from flask import Flask, request, abort
 from config import CONFIG
 from helper.database import Database, db
-from rename import rename_handler
-from thumbnail import Thumbnail
-from helper_utils import log_message  # Updated import
+from plugins.rename import rename_handler
+from plugins.thumbnail import Thumbnail
+from helper.helper_utils import log_message  # Updated import
 
 app = Client(
     "pdf_rename_bot",
