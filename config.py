@@ -26,7 +26,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "6809164496:AAGmTBe5dCMBFH4HG6zzON87MPKsOSzo6
 DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://testingpdf.onrender.com")
 PORT = int(os.getenv("PORT", "10000"))
-ADMIN_IDS = [int(id.strip(6617544956)) for id in os.getenv("ADMIN_IDS", "").split() if id.strip()]
+ADMIN_IDS = [int(id.strip()) for id in os.getenv("ADMIN_IDS", "6617544956").split() if id.strip()]
 LOG_CHANNEL = int(os.getenv("LOG_CHANNEL", "-1003060617678"))
 
 
