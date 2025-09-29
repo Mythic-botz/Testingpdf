@@ -1,6 +1,6 @@
 # rename.py - File rename logic
 from pyrogram import Client, filters
-from helper.helper_utils import is_allowed_file, sanitize_filename, log_message, format_filename
+from helper.utils import is_allowed_file, sanitize_filename, log_message, format_filename
 from helper.database import db
 from config import CONFIG
 import asyncio
