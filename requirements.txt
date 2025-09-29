@@ -11,6 +11,6 @@ aiohttp
 #flask==3.0.3  # Web framework for webhook
 #Pillow==10.4.0  # For thumbnails
 #PyPDF2==3.0.1  # For chapter detection in PDFs
-sqlite3  # Built-in for database
+#sqlite3  # Built-in for database
 flask
 PyPDF2
