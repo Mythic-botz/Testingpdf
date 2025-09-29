@@ -4,7 +4,7 @@
 from PIL import Image
 import os
 from pyrogram import Client
-from helper_utils import log_message  # Updated import
+from helper.helper_utils import log_message  # Updated import
 
 class Thumbnail:
     def __init__(self):
