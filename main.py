@@ -1,81 +1,84 @@
+# main.py - Bot entry point
 import os
-from datetime import datetime
-from pytz import timezone
-from pyrogram import Client, __version__
-from pyrogram.raw.all import layer
-from aiohttp import web
-from config import *
-import pyrogram.utils
+import asyncio
+from pyrogram import Client, filters
+from flask import Flask, request, abort
+from config import CONFIG
+from database import Database, db
+from rename import rename_handler
+from thumbnail import Thumbnail
+from helper_utils import log_message  # Updated import
 
-# Fix chat/channel ID edge cases
-pyrogram.utils.MIN_CHAT_ID = -999999999999
-pyrogram.utils.MIN_CHANNEL_ID = -100999999999999
-
-# Initialize bot
-bot = Client(
-    name="renamer",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN,
-    workers=200,
-    plugins={"root": "plugins"},
-    sleep_threshold=15,
+app = Client(
+    "pdf_rename_bot",
+    api_id=CONFIG["api_id"],
+    api_hash=CONFIG["api_hash"],
+    bot_token=CONFIG["bot_token"],
+    plugins={"root": "plugins"}
 )
 
-# Webhook listener
-async def handle_webhook(request):
-    data = await request.json()
-    await bot.process_updates([data])
-    return web.Response(text="ok")
+flask_app = Flask(__name__)
+thumb_manager = Thumbnail()
+db = Database(CONFIG["database_path"])
+db.init_db()
 
-# Startup tasks
-async def on_startup(app):
-    await bot.start()
-    me = await bot.get_me()
-    bot.mention = me.mention
-    bot.username = me.username
-    print(f"🚀 {me.first_name} started in webhook mode!")
+# Handlers
+@app.on_message(filters.document & filters.private)
+async def handle_document(client, message):
+    await rename_handler(client, message)
 
-    # Notify admins
-    for admin_id in ADMIN:
-        try:
-            await bot.send_message(admin_id, f"**{me.first_name} is Started...**")
-        except Exception:
-            pass
+@app.on_message(filters.command("setformat") & filters.private)
+async def set_format(client: Client, message):
+    """
+    Set custom filename format.
+    Usage: /setformat {original_name}_Ch{chapter}_{date}
+    """
+    if len(message.command) < 2:
+        variables = "\n".join([f"{k}: {v}" for k, v in CONFIG["format_variables"].items()])
+        return await message.reply(
+            f"Usage: /setformat <pattern>\nAvailable variables:\n{variables}"
+        )
+    
+    pattern = message.text.split(" ", 1)[1]
+    user_id = message.from_user.id
+    db.set_user_setting(user_id, 'format_pattern', pattern)
+    await message.reply(f"Format set: {pattern}")
+    await log_message(client, f"User {user_id} set format: {pattern}")
 
-    # Notify log channel
-    if LOG_CHANNEL:
-        try:
-            curr = datetime.now(timezone("Asia/Kolkata"))
-            date = curr.strftime('%d %B, %Y')
-            time = curr.strftime('%I:%M:%S %p')
-            await bot.send_message(
-                LOG_CHANNEL,
-                f"**{bot.mention} is Restarted !!**\n\n"
-                f"📅 Date : `{date}`\n"
-                f"⏰ Time : `{time}`\n"
-                f"🌐 Timezone : `Asia/Kolkata`\n\n"
-                f"🉐 Version : `v{__version__} (Layer {layer})`"
-            )
-        except Exception:
-            print("Please make the bot an admin in your log channel.")
+# Webhook
+@flask_app.route(f"/webhook", methods=["POST"])
+def webhook():
+    if CONFIG["webhook_url"] == "":
+        abort(403)
+    
+    update = request.get_json(force=True)
+    asyncio.create_task(process_update(update))
+    return "OK", 200
 
-# Shutdown tasks
-async def on_cleanup(app):
-    await bot.stop()
-    print("✅ Bot stopped successfully.")
+async def process_update(update):
+    if "message" in update and update["message"].get("document"):
+        mock_client = app
+        mock_message = type('obj', (object,), update["message"])()
+        await rename_handler(mock_client, mock_message)
+    elif "message" in update and update["message"].get("text", "").startswith("/setformat"):
+        mock_client = app
+        mock_message = type('obj', (object,), update["message"])()
+        await set_format(mock_client, mock_message)
 
-# Create aiohttp app
-app = web.Application()
-app.router.add_post(f"/{WEBHOOK_PATH}", handle_webhook)
-app.on_startup.append(on_startup)
-app.on_cleanup.append(on_cleanup)
+async def main():
+    await app.start()
+    
+    if CONFIG["webhook_url"]:
+        await app.set_webhook(CONFIG["webhook_url"])
+        print(f"Webhook set to {CONFIG['webhook_url']}")
+        flask_app.run(host="0.0.0.0", port=CONFIG["port"], debug=False)
+    else:
+        print("Polling mode...")
+        await app.idle()
 
 if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 8080))
-    BASE_URL = os.environ.get("BASE_URL")
-    if not BASE_URL:
-        raise Exception("❌ BASE_URL environment variable required for webhook!")
-
-    print(f"🚀 Webhook listening at {BASE_URL}/{WEBHOOK_PATH}")
-    web.run_app(app, host="0.0.0.0", port=PORT)
+    try:
+        asyncio.run(main())
+    finally:
+        db.close()
+        app.stop()
