@@ -4,7 +4,7 @@ import asyncio
 from pyrogram import Client, filters
 from flask import Flask, request, abort
 from config import CONFIG
-from database import Database, db
+from helper.database import Database, db
 from rename import rename_handler
 from thumbnail import Thumbnail
 from helper_utils import log_message  # Updated import
