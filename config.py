@@ -27,7 +27,7 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://testingpdf.onrender.com")
 PORT = int(os.getenv("PORT", "10000"))
 ADMIN_IDS = [int(id.strip(6617544956)) for id in os.getenv("ADMIN_IDS", "").split() if id.strip()]
-LOG_CHANNEL = int(os.getenv("LOG_CHANNEL", ""))
+LOG_CHANNEL = int(os.getenv("LOG_CHANNEL", "-1003060617678"))
 
 
 # Default rename settings
