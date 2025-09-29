@@ -7,7 +7,7 @@ from config import CONFIG
 from helper.database import Database, db
 from plugins.rename import rename_handler
 from plugins.thumbnail import Thumbnail
-from helper.helper_utils import log_message  # Updated import
+from helper.utils import log_message  # Updated import
 
 app = Client(
     "pdf_rename_bot",
